@@ -1,24 +1,23 @@
 " Vim with all enhancements
 source $VIMRUNTIME/vimrc_example.vim
 
-" Use the internal diff if available.
-" Otherwise use the special 'diffexpr' for Windows.
+" --- Diff helper (keep as-is) ---
 if &diffopt !~# 'internal'
   set diffexpr=MyDiff()
 endif
-function MyDiff()
+function! MyDiff()
   let opt = '-a --binary '
-  if &diffopt =~ 'icase' | let opt = opt . '-i ' | endif
-  if &diffopt =~ 'iwhite' | let opt = opt . '-b ' | endif
-  let arg1 = v:fname_in
+  if &diffopt =~ 'icase'  | let opt .= '-i ' | endif
+  if &diffopt =~ 'iwhite' | let opt .= '-b ' | endif
+
+  let arg1 = substitute(v:fname_in,  '!', '\!', 'g')
+  let arg2 = substitute(v:fname_new, '!', '\!', 'g')
+  let arg3 = substitute(v:fname_out, '!', '\!', 'g')
+
   if arg1 =~ ' ' | let arg1 = '"' . arg1 . '"' | endif
-  let arg1 = substitute(arg1, '!', '\!', 'g')
-  let arg2 = v:fname_new
   if arg2 =~ ' ' | let arg2 = '"' . arg2 . '"' | endif
-  let arg2 = substitute(arg2, '!', '\!', 'g')
-  let arg3 = v:fname_out
   if arg3 =~ ' ' | let arg3 = '"' . arg3 . '"' | endif
-  let arg3 = substitute(arg3, '!', '\!', 'g')
+
   if $VIMRUNTIME =~ ' '
     if &sh =~ '\<cmd'
       if empty(&shellxquote)
@@ -32,32 +31,56 @@ function MyDiff()
   else
     let cmd = $VIMRUNTIME . '\diff'
   endif
+
   let cmd = substitute(cmd, '!', '\!', 'g')
   silent execute '!' . cmd . ' ' . opt . arg1 . ' ' . arg2 . ' > ' . arg3
+
   if exists('l:shxq_sav')
-    let &shellxquote=l:shxq_sav
+    let &shellxquote = l:shxq_sav
   endif
 endfunction
 
+" --- Editor basics ---
 syntax on
 set number
 set hidden
-set mouse=a "set the value to c to disable
-set smartident
-set st=4 sw=4 et
-set shiftwidth=4
-set backspace=ident,eol,start
-set tabstop=4
-let g:vim_json_syntax_conceal = 0
-set colorcolumn=80
-set autoread
-:set guioptions-=m "remove menu bar
-:set guioptions-=T "remove toolbar
-:set guioptions-=r "remove right-hand scroll bar
-:set guioptions-=L "remove left-hand scroll bar
-:set lines=999 columns=999
+set mouse=a
+set smartindent
 
+" Tabs/indent
+set tabstop=4
+set shiftwidth=4
+set softtabstop=4
+set expandtab
+
+set backspace=indent,eol,start
+let g:vim_json_syntax_conceal = 0
+set autoread
+
+" --- Red column on the right ---
+" If you DON'T want it, comment the next line or set it to 0.
+" set colorcolumn=80
+set colorcolumn=0
+
+" --- GUI-only settings (avoid "Press ENTER" in terminal Vim) ---
+if has('gui_running')
+  set guioptions-=m  " remove menu bar
+  set guioptions-=T  " remove toolbar
+  set guioptions-=r  " remove right scroll bar
+  set guioptions-=L  " remove left scroll bar
+  " Avoid absurd sizes; you can adjust
+  set lines=50 columns=160
+endif
+
+" --- Temp/backup/swap in Windows Temp ---
+" Prefer %TEMP% / %TMP% if present; fallback to C:\Windows\Temp
+let s:tmp = empty($TEMP) ? (empty($TMP) ? 'C:\Windows\Temp' : $TMP) : $TEMP
+let s:tmp = substitute(s:tmp, '/', '\', 'g')
+
+" Put swap/backup files there. Trailing // helps avoid name collisions.
 set backup
-set backupdir=C:\WINDOWS\Temp
-set backupskip=C:\WINDOWS\Temp\*
-set directory=C:\WINDOWS\Temp
+execute 'set backupdir=' . fnameescape(s:tmp) . '\//'
+execute 'set directory=' . fnameescape(s:tmp) . '\//'
+
+" Optional: keep Vim from making extra backup copies during write
+set nowritebackup
